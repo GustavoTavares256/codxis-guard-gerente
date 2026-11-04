@@ -9,6 +9,7 @@ Extensão para Google Chrome (Manifest V3) que **exige a senha do gerente** ante
 - Intercepta cliques e atalhos de teclado (padrão: **F7** = cancelar item, **F9** = cancelar venda).
 - Também pede a senha para **alterar o preço unitário** (digitar, colar ou apagar no campo Valor Unit.) e para botões "alterar preço".
 - Quando o Codxis abre o modal "Desconto maior que o limite do vendedor", o **Confirmar** exige também a senha do gerente da extensão.
+- **Restaura os itens da venda após recarregar o PDV**: guarda código e quantidade (por aba) e, depois do F5, pergunta se deve reinseri-los (Enter restaura, Esc descarta). Preço, desconto, cliente e pagamentos não são restaurados.
 - Modal de autorização isolado em Shadow DOM, com foco travado na senha.
 - Senhas armazenadas com **PBKDF2-SHA256** (150 mil iterações, salt aleatório) — nunca em texto puro.
 - Bloqueio temporário após tentativas incorretas (3 para o gerente, 5 para o administrador).

@@ -33,6 +33,7 @@ async function unlock() {
   const s = await CX.getSettings();
   FIELDS.forEach((f) => ($(f).value = s[f]));
   $('debug').checked = !!s.debug;
+  $('restoreCart').checked = s.restoreCart !== false;
   $('mgrStatus').textContent = (await CX.get('managerCred')) ? 'Senha do gerente: cadastrada.' : 'Senha do gerente: NÃO cadastrada (todas as ações protegidas serão negadas).';
   renderLog();
 }
@@ -57,7 +58,7 @@ $('admBtn').onclick = async () => {
 };
 
 $('cfgBtn').onclick = async () => {
-  const s = { debug: $('debug').checked };
+  const s = { debug: $('debug').checked, restoreCart: $('restoreCart').checked };
   FIELDS.forEach((f) => (s[f] = $(f).value.trim()));
   for (const f of ['screenRegex', 'removeRegex', 'cancelRegex', 'priceRegex', 'priceFieldRegex', 'discountDialogRegex']) {
     try { new RegExp(s[f], 'i'); } catch (e) { return say('cfgMsg', 'Regex inválida em ' + f, false); }

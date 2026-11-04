@@ -238,6 +238,7 @@
     e.preventDefault(); e.stopImmediatePropagation();
     askPassword(hit.type, infoFor(hit.type, hit.el)).then((ok) => {
       if (!ok) return;
+      if (hit.type === 'cancel') clearCart();
       bypass = true;
       try { hit.el.click(); } finally { bypass = false; }
     });
@@ -305,4 +306,130 @@
       } finally { bypass = false; }
     });
   }, true);
+
+  /* ---------- Restaurar itens da venda após recarregar a página ---------- */
+  // O PDV guarda a venda no servidor e a zera ao recarregar. Guardamos código+quantidade dos itens
+  // (por aba) e, após o reload, oferecemos reinseri-los. Preço/desconto/pagamento NÃO são restaurados.
+  const CART_KEY = 'cx_cart', CART_TTL = 60 * 60 * 1000;
+  let restoring = false, sawItems = false, cartTimer = null;
+  const isPdv = () => !!rxScreen && rxScreen.test(norm(location.href));
+  const codeInput = () => document.querySelector('input[id$="tableProdutosNovoLayout:codigoProduto"]');
+  const qtyInput = () => document.querySelector('input[id$="tableProdutosNovoLayout:quantidade"]');
+  const itemCells = () => [...document.querySelectorAll('[id$="descricaoProdTable"]')];
+
+  function readCart() {
+    return itemCells().map((cell) => {
+      const text = (cell.innerText || '').replace(/\s+/g, ' ').trim();
+      const m = text.match(/Cod:\s*(\S+)/i);
+      const tr = cell.closest('tr');
+      const qty = tr && tr.children[1] ? tr.children[1].innerText.trim() : '';
+      return m ? { cod: m[1], qty: qty || '1,0000', nome: text.slice(0, 80) } : null;
+    }).filter(Boolean);
+  }
+  const loadCart = () => {
+    try {
+      const o = JSON.parse(sessionStorage.getItem(CART_KEY) || 'null');
+      return o && Date.now() - o.ts < CART_TTL && o.items.length ? o : null;
+    } catch (e) { return null; }
+  };
+  const saveCart = (items) => { try { sessionStorage.setItem(CART_KEY, JSON.stringify({ ts: Date.now(), items })); } catch (e) { /* ignore */ } };
+  const clearCart = () => { try { sessionStorage.removeItem(CART_KEY); } catch (e) { /* ignore */ } sawItems = false; };
+
+  function syncCart() {
+    if (restoring || !cfg.restoreCart || !isPdv() || !codeInput()) return;
+    const items = readCart();
+    if (items.length) { sawItems = true; saveCart(items); }
+    else if (sawItems) clearCart(); // esvaziou na própria página (cancelou/finalizou)
+  }
+  const scheduleSync = () => { clearTimeout(cartTimer); cartTimer = setTimeout(syncCart, 700); };
+
+  const setVal = (el, v) => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, v);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+  const keyEv = (el, type) => el.dispatchEvent(new KeyboardEvent(type, {
+    key: 'Enter', code: 'Enter', keyCode: 13, which: 13, charCode: type === 'keypress' ? 13 : 0, bubbles: true, cancelable: true
+  }));
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  async function insertItem(it) {
+    const q = qtyInput(), c = codeInput();
+    if (!q || !c) return false;
+    const before = itemCells().length;
+    setVal(q, it.qty); q.dispatchEvent(new Event('change', { bubbles: true }));
+    c.focus(); setVal(c, it.cod);
+    keyEv(c, 'keydown'); keyEv(c, 'keypress');
+    c.dispatchEvent(new Event('change', { bubbles: true }));
+    keyEv(c, 'keyup');
+    for (let i = 0; i < 80; i++) { await sleep(100); if (itemCells().length > before) return true; }
+    return false;
+  }
+
+  function overlay(html) {
+    const host = document.createElement('div');
+    host.style.cssText = 'all:initial;position:fixed;inset:0;z-index:2147483647;';
+    const root = host.attachShadow({ mode: 'closed' });
+    root.innerHTML = `<style>
+      *{box-sizing:border-box;font-family:Segoe UI,Roboto,Arial,sans-serif}
+      .bg{position:fixed;inset:0;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center}
+      .box{background:#fff;width:420px;max-width:92vw;border-radius:10px;box-shadow:0 20px 50px rgba(0,0,0,.35);padding:22px;color:#0f172a}
+      h2{margin:0 0 6px;font-size:18px} p{margin:0 0 10px;font-size:13px;color:#475569}
+      ul{margin:0 0 12px;padding:8px 10px 8px 26px;background:#f1f5f9;border-radius:6px;font-size:12px;max-height:180px;overflow:auto}
+      .row{display:flex;gap:8px;justify-content:flex-end}
+      button{padding:9px 16px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;font-size:14px;cursor:pointer}
+      button.ok{background:#2563eb;border-color:#2563eb;color:#fff}
+    </style><div class="bg"><div class="box">${html}</div></div>`;
+    (document.body || document.documentElement).appendChild(host);
+    return { host, root };
+  }
+
+  function askRestore(cart) {
+    return new Promise((resolve) => {
+      const { host, root } = overlay(`<h2>Restaurar venda anterior?</h2>
+        <p>A página foi recarregada e a venda foi zerada. Reinserir os itens abaixo? (preços, descontos e pagamentos não são restaurados)</p>
+        <ul></ul><div class="row"><button class="no">Descartar (Esc)</button><button class="ok">Restaurar (Enter)</button></div>`);
+      const ul = root.querySelector('ul');
+      cart.items.forEach((i) => { const li = document.createElement('li'); li.textContent = i.nome + '  — qtd ' + i.qty; ul.appendChild(li); });
+      currentHost = host;
+      const done = (v) => { host.remove(); currentHost = null; resolve(v); };
+      root.querySelector('.ok').addEventListener('click', () => done(true));
+      root.querySelector('.no').addEventListener('click', () => done(false));
+      host.addEventListener('keydown', (e) => {
+        e.stopPropagation();
+        if (e.key === 'Enter') { e.preventDefault(); done(true); } else if (e.key === 'Escape') { e.preventDefault(); done(false); }
+      });
+      root.querySelector('.ok').focus();
+    });
+  }
+
+  async function restoreCart(cart) {
+    restoring = true;
+    const { host, root } = overlay('<h2>Restaurando venda…</h2><p class="st"></p>');
+    currentHost = host;
+    let ok = 0;
+    try {
+      for (let i = 0; i < cart.items.length; i++) {
+        root.querySelector('.st').textContent = 'Item ' + (i + 1) + ' de ' + cart.items.length + ': ' + cart.items[i].nome;
+        if (await insertItem(cart.items[i])) ok++;
+      }
+      const q = qtyInput(), c = codeInput();
+      if (q) { setVal(q, '1,0000'); q.dispatchEvent(new Event('change', { bubbles: true })); }
+      if (c) setVal(c, '');
+      root.querySelector('h2').textContent = ok + ' de ' + cart.items.length + ' itens restaurados';
+      root.querySelector('.st').textContent = ok < cart.items.length ? 'Alguns itens não foram inseridos: confira a venda.' : '';
+      await sleep(ok < cart.items.length ? 3500 : 1200);
+    } finally { host.remove(); currentHost = null; restoring = false; syncCart(); }
+  }
+
+  async function initCart() {
+    for (let i = 0; i < 60 && !(codeInput() && document.querySelector('[id*="tableProdutosNovoLayout"]')); i++) await sleep(250);
+    if (!cfg.restoreCart || !isPdv() || !codeInput()) return;
+    const cart = loadCart();
+    if (cart && !itemCells().length) {
+      if (await askRestore(cart)) await restoreCart(cart); else clearCart();
+    } else syncCart();
+    new MutationObserver(scheduleSync).observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+  }
+  const bootCart = () => { CX.get('settings').then(() => initCart()); };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bootCart); else bootCart();
 })();

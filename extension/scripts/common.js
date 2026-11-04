@@ -18,6 +18,7 @@ const CX = (() => {
     // Atalhos do PDV Codxis: F7 = Cancelar Item, F9 = Cancelar Venda
     removeKeys: 'F7',
     cancelKeys: 'F9',
+    restoreCart: true, // oferece reinserir os itens da venda após recarregar a página
     debug: false
   };
 
