@@ -3,7 +3,7 @@
   'use strict';
   const TAG = '[CX-Guard]';
   let cfg = { ...CX.DEFAULTS };
-  let rxRemove = null, rxCancel = null, rxScreen = null, rxPrice = null, rxPriceField = null;
+  let rxRemove = null, rxCancel = null, rxScreen = null, rxPrice = null, rxPriceField = null, rxDiscount = null;
   const priceOk = new WeakSet(); // campos de preço já autorizados (até perder o foco)
   let keysRemove = new Set(), keysCancel = new Set();
   let bypass = false;
@@ -15,7 +15,7 @@
   function applyCfg(s) {
     cfg = { ...CX.DEFAULTS, ...(s || {}) };
     rxRemove = mkRx(cfg.removeRegex); rxCancel = mkRx(cfg.cancelRegex); rxScreen = mkRx(cfg.screenRegex);
-    rxPrice = mkRx(cfg.priceRegex); rxPriceField = mkRx(cfg.priceFieldRegex);
+    rxPrice = mkRx(cfg.priceRegex); rxPriceField = mkRx(cfg.priceFieldRegex); rxDiscount = mkRx(cfg.discountDialogRegex);
     const toSet = (str) => new Set(str.split(',').map((x) => x.trim()).filter(Boolean).map(normCombo));
     keysRemove = toSet(cfg.removeKeys || ''); keysCancel = toSet(cfg.cancelKeys || '');
     lastCheck = 0;
@@ -74,6 +74,19 @@
     }
     return parts.filter(Boolean).join(' ');
   }
+  /* Modal "Autorização – Desconto maior que o limite do vendedor" do próprio Codxis */
+  const CONFIRM = /^(confirmar|autorizar|ok)$/;
+  function discountDialog(el) {
+    const dlg = el && el.closest && el.closest('.ui-dialog,[role=dialog]');
+    if (!dlg || !visible(dlg) || !rxDiscount) return null;
+    return rxDiscount.test(norm(dlg.id + ' ' + (dlg.innerText || '').slice(0, 300))) ? dlg : null;
+  }
+  function discountHit(start) {
+    const btn = start && start.closest && start.closest('button,a,input[type=submit],input[type=button]');
+    if (!btn || !discountDialog(btn) || !CONFIRM.test(norm(btn.innerText || btn.value))) return null;
+    return { type: 'discount', el: btn };
+  }
+
   function findHit(start) {
     let el = start && start.nodeType === 1 ? start : start && start.parentElement;
     for (let i = 0; el && i < 5 && el !== document.body; i++, el = el.parentElement) {
@@ -108,6 +121,10 @@
   }
   function infoFor(type, el) {
     if (type === 'cancel') return { product: '', value: saleTotal() };
+    if (type === 'discount') {
+      const i = document.querySelector('input[id$="descontoCurrency_input"]');
+      return { product: i && i.value ? 'Desconto ' + i.value : '', value: '' };
+    }
     if (type === 'price' && el && el.tagName === 'INPUT') {
       const d = document.querySelector('input[id$="consultaDescricao2_input"]');
       return { product: (d && d.value) || '', value: el.value ? 'R$ ' + el.value : '' };
@@ -118,7 +135,7 @@
   }
 
   /* ---------- Modal ---------- */
-  const LABEL = { remove: 'Remoção de item', cancel: 'Cancelamento de venda', price: 'Alteração de preço' };
+  const LABEL = { remove: 'Remoção de item', cancel: 'Cancelamento de venda', price: 'Alteração de preço', discount: 'Desconto acima do limite' };
   const LOCKKEY = 'manager';
 
   function askPassword(type, info) {
@@ -216,7 +233,7 @@
     const origin = e.composedPath()[0] || e.target;
     if (cfg.debug) console.log(TAG, 'click', { ativo: isActive(), alvo: origin, descricao: origin && origin.nodeType === 1 ? describe(origin) : '' });
     if (!isActive()) return;
-    const hit = findHit(origin);
+    const hit = discountHit(origin) || findHit(origin);
     if (!hit) return;
     e.preventDefault(); e.stopImmediatePropagation();
     askPassword(hit.type, infoFor(hit.type, hit.el)).then((ok) => {
@@ -248,6 +265,21 @@
   }
   ['keydown', 'beforeinput', 'paste', 'cut', 'drop'].forEach((t) => document.addEventListener(t, guardPriceEdit, true));
   document.addEventListener('focusout', (e) => priceOk.delete(e.target), true);
+
+  // Enter na senha do modal de desconto também confirma: exige a senha da extensão antes.
+  window.addEventListener('keydown', (e) => {
+    if (bypass || !e.isTrusted || inHost(e) || e.key !== 'Enter' || currentHost) return;
+    const dlg = discountDialog(e.target);
+    if (!dlg || !isActive()) return;
+    const btn = [...dlg.querySelectorAll('button,input[type=submit]')].find((b) => CONFIRM.test(norm(b.innerText || b.value)));
+    if (!btn) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    askPassword('discount', infoFor('discount', btn)).then((ok) => {
+      if (!ok) return;
+      bypass = true;
+      try { btn.click(); } finally { bypass = false; }
+    });
+  }, true);
 
   window.addEventListener('keydown', (e) => {
     if (bypass || !e.isTrusted || inHost(e)) return;

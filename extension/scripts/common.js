@@ -13,6 +13,8 @@ const CX = (() => {
     // Alteração de preço: botões "alterar preço" e o campo Valor Unit. (testado contra id/name/aria-label)
     priceRegex: 'alterar[\\s_-]*(o[\\s_-]*)?preco|editar[\\s_-]*preco|mudar[\\s_-]*preco',
     priceFieldRegex: 'precounitario|preco[\\s_-]*unit|valor[\\s_-]*unit|vlr[\\s_-]*unit',
+    // Modal do Codxis "Desconto maior que o limite do vendedor": Confirmar exige também a senha do gerente
+    discountDialogRegex: 'autorizacaodescontodialog|limite do vendedor',
     // Atalhos do PDV Codxis: F7 = Cancelar Item, F9 = Cancelar Venda
     removeKeys: 'F7',
     cancelKeys: 'F9',

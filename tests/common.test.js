@@ -123,6 +123,13 @@ describe('helpers puros', () => {
     assert.ok(!p.test(CX.norm('Consultar preço')));
   });
 
+  test('regex do modal de desconto reconhece o diálogo de autorização do Codxis', () => {
+    const d = CX.mkRx(CX.DEFAULTS.discountDialogRegex);
+    assert.ok(d.test(CX.norm('formNFCe:autorizacaoDescontoDialog Autorização')));
+    assert.ok(d.test(CX.norm('Desconto maior que o limite do vendedor!')));
+    assert.ok(!d.test(CX.norm('formNFCe:outroDialog Confirmar venda')));
+  });
+
   test('regex de tela reconhece "Realizar Venda"', () => {
     const rx = CX.mkRx(CX.DEFAULTS.screenRegex);
     assert.ok(rx.test(CX.norm('PDV › Realizar Venda')));
