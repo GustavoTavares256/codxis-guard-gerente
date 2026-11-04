@@ -1,6 +1,6 @@
 {
   "name": "codxis-guard-gerente",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Extensão Chrome (MV3) que exige a senha do gerente para remover item ou cancelar venda no PDV web Codxis.",
   "private": true,
   "license": "UNLICENSED",

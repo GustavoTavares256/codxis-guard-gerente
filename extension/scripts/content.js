@@ -336,8 +336,10 @@
   const clearCart = () => { try { sessionStorage.removeItem(CART_KEY); } catch (e) { /* ignore */ } sawItems = false; };
 
   const dbg = (...a) => { if (cfg.debug) console.log(TAG, 'carrinho', ...a); };
+  const mark = (o) => { try { document.documentElement.setAttribute('data-cx-guard', JSON.stringify({ v: chrome.runtime.getManifest().version, ...o })); } catch (e) { /* ignore */ } };
   function syncCart() {
-    dbg('sync', { restoring, on: cfg.restoreCart, pdv: isPdv(), campo: !!codeInput(), itens: itemCells().length });
+    const st = { restoring, on: cfg.restoreCart, pdv: isPdv(), campo: !!codeInput(), itens: itemCells().length };
+    dbg('sync', st); mark({ fase: 'sync', ...st });
     if (restoring || !cfg.restoreCart || !isPdv() || !codeInput()) return;
     const items = readCart();
     if (items.length) { sawItems = true; saveCart(items); }
@@ -349,20 +351,19 @@
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, v);
     el.dispatchEvent(new Event('input', { bubbles: true }));
   };
-  const keyEv = (el, type) => el.dispatchEvent(new KeyboardEvent(type, {
-    key: 'Enter', code: 'Enter', keyCode: 13, which: 13, charCode: type === 'keypress' ? 13 : 0, bubbles: true, cancelable: true
-  }));
+  const fire = (el, v) => { el.focus(); setVal(el, v); el.dispatchEvent(new Event('change', { bubbles: true })); };
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const insertBtn = () => [...document.querySelectorAll('button')].find((x) => /^\s*inserir\s*$/i.test(x.innerText) && x.id.includes('tableProdutosNovoLayout'));
 
+  // Ordem validada no PDV: código (resolve o produto) -> quantidade -> botão Inserir.
+  // Mudar a quantidade ANTES do código altera o item anterior da venda.
   async function insertItem(it) {
-    const q = qtyInput(), c = codeInput();
-    if (!q || !c) return false;
+    const q = qtyInput(), c = codeInput(), btn = insertBtn();
+    if (!q || !c || !btn) return false;
     const before = itemCells().length;
-    setVal(q, it.qty); q.dispatchEvent(new Event('change', { bubbles: true }));
-    c.focus(); setVal(c, it.cod);
-    keyEv(c, 'keydown'); keyEv(c, 'keypress');
-    c.dispatchEvent(new Event('change', { bubbles: true }));
-    keyEv(c, 'keyup');
+    fire(c, it.cod); await sleep(1500);
+    fire(q, it.qty); await sleep(1200);
+    btn.click();
     for (let i = 0; i < 80; i++) { await sleep(100); if (itemCells().length > before) return true; }
     return false;
   }
@@ -425,7 +426,8 @@
 
   async function initCart() {
     for (let i = 0; i < 60 && !(codeInput() && document.querySelector('[id*="tableProdutosNovoLayout"]')); i++) await sleep(250);
-    dbg('init', { on: cfg.restoreCart, pdv: isPdv(), campo: !!codeInput(), salvo: !!loadCart() });
+    const st = { on: cfg.restoreCart, pdv: isPdv(), campo: !!codeInput(), salvo: !!loadCart() };
+    dbg('init', st); mark({ fase: 'init', ...st });
     if (!cfg.restoreCart || !isPdv() || !codeInput()) return;
     const cart = loadCart();
     if (cart && !itemCells().length) {
@@ -433,6 +435,6 @@
     } else syncCart();
     new MutationObserver(scheduleSync).observe(document.documentElement, { childList: true, subtree: true, characterData: true });
   }
-  const bootCart = () => { CX.get('settings').then(() => initCart()); };
+  const bootCart = () => { mark({ fase: 'boot' }); CX.get('settings').then(() => initCart()); };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bootCart); else bootCart();
 })();
