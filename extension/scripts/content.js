@@ -335,7 +335,9 @@
   const saveCart = (items) => { try { sessionStorage.setItem(CART_KEY, JSON.stringify({ ts: Date.now(), items })); } catch (e) { /* ignore */ } };
   const clearCart = () => { try { sessionStorage.removeItem(CART_KEY); } catch (e) { /* ignore */ } sawItems = false; };
 
+  const dbg = (...a) => { if (cfg.debug) console.log(TAG, 'carrinho', ...a); };
   function syncCart() {
+    dbg('sync', { restoring, on: cfg.restoreCart, pdv: isPdv(), campo: !!codeInput(), itens: itemCells().length });
     if (restoring || !cfg.restoreCart || !isPdv() || !codeInput()) return;
     const items = readCart();
     if (items.length) { sawItems = true; saveCart(items); }
@@ -423,6 +425,7 @@
 
   async function initCart() {
     for (let i = 0; i < 60 && !(codeInput() && document.querySelector('[id*="tableProdutosNovoLayout"]')); i++) await sleep(250);
+    dbg('init', { on: cfg.restoreCart, pdv: isPdv(), campo: !!codeInput(), salvo: !!loadCart() });
     if (!cfg.restoreCart || !isPdv() || !codeInput()) return;
     const cart = loadCart();
     if (cart && !itemCells().length) {
