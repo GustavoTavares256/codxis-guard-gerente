@@ -10,6 +10,9 @@ const CX = (() => {
     screenRegex: 'realizar venda|nfce/emissao/pdv',
     removeRegex: 'excluir|cancelar[\\s_-]*item|remov|lixeira|trash|apagar',
     cancelRegex: 'cancelar[\\s_-]*venda|cancel\\w*[\\s_-]*(o[\\s_-]*)?(cupom|pedido)',
+    // Alteração de preço: botões "alterar preço" e o campo Valor Unit. (testado contra id/name/aria-label)
+    priceRegex: 'alterar[\\s_-]*(o[\\s_-]*)?preco|editar[\\s_-]*preco|mudar[\\s_-]*preco',
+    priceFieldRegex: 'precounitario|preco[\\s_-]*unit|valor[\\s_-]*unit|vlr[\\s_-]*unit',
     // Atalhos do PDV Codxis: F7 = Cancelar Item, F9 = Cancelar Venda
     removeKeys: 'F7',
     cancelKeys: 'F9',

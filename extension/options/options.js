@@ -1,7 +1,7 @@
 const $ = (id) => document.getElementById(id);
 const show = (id, on = true) => $(id).classList.toggle('hidden', !on);
 const say = (id, text, ok) => { const e = $(id); e.textContent = text; e.className = 'msg ' + (ok ? 'ok' : 'bad'); };
-const FIELDS = ['company', 'screenRegex', 'removeRegex', 'cancelRegex', 'removeKeys', 'cancelKeys'];
+const FIELDS = ['company', 'screenRegex', 'removeRegex', 'cancelRegex', 'priceRegex', 'priceFieldRegex', 'removeKeys', 'cancelKeys'];
 
 async function init() {
   const adm = await CX.get('adminCred');
@@ -59,7 +59,7 @@ $('admBtn').onclick = async () => {
 $('cfgBtn').onclick = async () => {
   const s = { debug: $('debug').checked };
   FIELDS.forEach((f) => (s[f] = $(f).value.trim()));
-  for (const f of ['screenRegex', 'removeRegex', 'cancelRegex']) {
+  for (const f of ['screenRegex', 'removeRegex', 'cancelRegex', 'priceRegex', 'priceFieldRegex']) {
     try { new RegExp(s[f], 'i'); } catch (e) { return say('cfgMsg', 'Regex inválida em ' + f, false); }
   }
   await CX.set('settings', s);

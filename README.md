@@ -7,6 +7,7 @@ Extensão para Google Chrome (Manifest V3) que **exige a senha do gerente** ante
 ## Funcionalidades
 
 - Intercepta cliques e atalhos de teclado (padrão: **F7** = cancelar item, **F9** = cancelar venda).
+- Também pede a senha para **alterar o preço unitário** (digitar, colar ou apagar no campo Valor Unit.) e para botões "alterar preço".
 - Modal de autorização isolado em Shadow DOM, com foco travado na senha.
 - Senhas armazenadas com **PBKDF2-SHA256** (150 mil iterações, salt aleatório) — nunca em texto puro.
 - Bloqueio temporário após tentativas incorretas (3 para o gerente, 5 para o administrador).

@@ -3,7 +3,8 @@
   'use strict';
   const TAG = '[CX-Guard]';
   let cfg = { ...CX.DEFAULTS };
-  let rxRemove = null, rxCancel = null, rxScreen = null;
+  let rxRemove = null, rxCancel = null, rxScreen = null, rxPrice = null, rxPriceField = null;
+  const priceOk = new WeakSet(); // campos de preço já autorizados (até perder o foco)
   let keysRemove = new Set(), keysCancel = new Set();
   let bypass = false;
   let currentHost = null; // host do modal aberto (null = fechado)
@@ -14,6 +15,7 @@
   function applyCfg(s) {
     cfg = { ...CX.DEFAULTS, ...(s || {}) };
     rxRemove = mkRx(cfg.removeRegex); rxCancel = mkRx(cfg.cancelRegex); rxScreen = mkRx(cfg.screenRegex);
+    rxPrice = mkRx(cfg.priceRegex); rxPriceField = mkRx(cfg.priceFieldRegex);
     const toSet = (str) => new Set(str.split(',').map((x) => x.trim()).filter(Boolean).map(normCombo));
     keysRemove = toSet(cfg.removeKeys || ''); keysCancel = toSet(cfg.cancelKeys || '');
     lastCheck = 0;
@@ -80,6 +82,7 @@
       if (!d) continue;
       if (rxCancel && rxCancel.test(d)) return { type: 'cancel', el };
       if (rxRemove && rxRemove.test(d)) return { type: 'remove', el };
+      if (rxPrice && !/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) && rxPrice.test(d)) return { type: 'price', el };
     }
     return null;
   }
@@ -105,13 +108,17 @@
   }
   function infoFor(type, el) {
     if (type === 'cancel') return { product: '', value: saleTotal() };
+    if (type === 'price' && el && el.tagName === 'INPUT') {
+      const d = document.querySelector('input[id$="consultaDescricao2_input"]');
+      return { product: (d && d.value) || '', value: el.value ? 'R$ ' + el.value : '' };
+    }
     let r = rowInfo(el);
     if (!r.product) { const sel = document.querySelector('tr.selected,tr.active,[class*=selected]'); if (sel) r = rowInfo(sel.firstElementChild || sel); }
     return r;
   }
 
   /* ---------- Modal ---------- */
-  const LABEL = { remove: 'Remoção de item', cancel: 'Cancelamento de venda' };
+  const LABEL = { remove: 'Remoção de item', cancel: 'Cancelamento de venda', price: 'Alteração de preço' };
   const LOCKKEY = 'manager';
 
   function askPassword(type, info) {
@@ -218,6 +225,29 @@
       try { hit.el.click(); } finally { bypass = false; }
     });
   }, true);
+
+  /* Edição do campo de preço unitário: pede a senha antes de aceitar digitação/colagem/exclusão. */
+  const isPriceField = (el) => !!(el && el.tagName === 'INPUT' && rxPriceField &&
+    rxPriceField.test(norm([el.id, el.name, el.getAttribute('aria-label'), el.placeholder].filter(Boolean).join(' '))));
+  function guardPriceEdit(e) {
+    if (bypass || !e.isTrusted || inHost(e)) return;
+    const el = e.target;
+    if (!isPriceField(el) || el.readOnly || el.disabled) return;
+    if (currentHost) { e.preventDefault(); e.stopImmediatePropagation(); return; }
+    if (!isActive() || priceOk.has(el)) return;
+    if (e.type === 'keydown') {
+      const edits = e.key.length === 1 ? !(e.ctrlKey || e.metaKey) || /^[vx]$/i.test(e.key) : /^(Backspace|Delete)$/.test(e.key);
+      if (!edits) return; // Tab, setas, F-keys etc. não alteram o valor
+    }
+    e.preventDefault(); e.stopImmediatePropagation();
+    askPassword('price', infoFor('price', el)).then((ok) => {
+      if (!ok) return;
+      priceOk.add(el);
+      try { el.focus(); el.select && el.select(); } catch (err) { /* ignore */ }
+    });
+  }
+  ['keydown', 'beforeinput', 'paste', 'cut', 'drop'].forEach((t) => document.addEventListener(t, guardPriceEdit, true));
+  document.addEventListener('focusout', (e) => priceOk.delete(e.target), true);
 
   window.addEventListener('keydown', (e) => {
     if (bypass || !e.isTrusted || inHost(e)) return;

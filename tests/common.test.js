@@ -107,6 +107,22 @@ describe('helpers puros', () => {
     assert.ok(!ca.test(CX.norm('Finalizar venda')));
   });
 
+  test('regex do campo de preço reconhece o Valor Unit. do PDV e ignora os demais', () => {
+    const f = CX.mkRx(CX.DEFAULTS.priceFieldRegex);
+    assert.ok(f.test(CX.norm('formNFCe:tableProdutosNovoLayout:precoUnitario')));
+    assert.ok(f.test(CX.norm('Valor Unit.')));
+    assert.ok(!f.test(CX.norm('formNFCe:tableProdutosNovoLayout:quantidade')));
+    assert.ok(!f.test(CX.norm('descontoCurrency_input')));
+    assert.ok(!f.test(CX.norm('formNFCe:tableProdutosNovoLayout:codigoProduto')));
+  });
+
+  test('regex de botões de alterar preço', () => {
+    const p = CX.mkRx(CX.DEFAULTS.priceRegex);
+    assert.ok(p.test(CX.norm('Alterar Preço')));
+    assert.ok(p.test(CX.norm('editar_preco')));
+    assert.ok(!p.test(CX.norm('Consultar preço')));
+  });
+
   test('regex de tela reconhece "Realizar Venda"', () => {
     const rx = CX.mkRx(CX.DEFAULTS.screenRegex);
     assert.ok(rx.test(CX.norm('PDV › Realizar Venda')));
