@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Codxis Guard - Opções</title>
+<style>
+  body{font-family:Segoe UI,Roboto,Arial,sans-serif;background:#f1f5f9;color:#0f172a;margin:0;padding:24px}
+  .wrap{max-width:900px;margin:0 auto}
+  section{background:#fff;border-radius:10px;padding:20px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  h1{font-size:22px;margin:0 0 16px} h2{font-size:16px;margin:0 0 12px}
+  label{display:block;font-size:13px;margin:10px 0 4px;color:#334155}
+  input[type=text],input[type=password]{width:100%;padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:14px;box-sizing:border-box}
+  button{padding:8px 14px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:14px;margin-top:12px;margin-right:6px}
+  button.primary{background:#2563eb;border-color:#2563eb;color:#fff}
+  .msg{font-size:13px;margin-top:8px;min-height:16px} .ok{color:#15803d} .bad{color:#b91c1c}
+  .hint{font-size:12px;color:#64748b}
+  table{width:100%;border-collapse:collapse;font-size:13px} th,td{text-align:left;padding:6px 8px;border-bottom:1px solid #e2e8f0}
+  th{background:#f8fafc} .neg{color:#b91c1c;font-weight:600} .aut{color:#15803d;font-weight:600}
+  .tablewrap{max-height:420px;overflow:auto}
+  .hidden{display:none}
+</style>
+</head>
+<body><div class="wrap">
+  <h1>Codxis Guard — Senha do Gerente</h1>
+
+  <section id="setup" class="hidden">
+    <h2>Primeiro acesso: crie a senha de administrador</h2>
+    <label>Senha de administrador (mín. 6 caracteres)</label><input type="password" id="setupA">
+    <label>Repetir</label><input type="password" id="setupB">
+    <button class="primary" id="setupBtn">Criar</button><div class="msg" id="setupMsg"></div>
+  </section>
+
+  <section id="login" class="hidden">
+    <h2>Acesso às opções</h2>
+    <label>Senha de administrador</label><input type="password" id="loginPwd">
+    <button class="primary" id="loginBtn">Entrar</button><div class="msg" id="loginMsg"></div>
+  </section>
+
+  <div id="main" class="hidden">
+    <section>
+      <h2>Senha do gerente</h2>
+      <label>Nova senha do gerente (mín. 4 caracteres)</label><input type="password" id="mgrA">
+      <label>Repetir</label><input type="password" id="mgrB">
+      <button class="primary" id="mgrBtn">Salvar senha do gerente</button><div class="msg" id="mgrMsg"></div>
+      <div class="hint" id="mgrStatus"></div>
+    </section>
+
+    <section>
+      <h2>Senha de administrador</h2>
+      <label>Senha atual</label><input type="password" id="admOld">
+      <label>Nova senha</label><input type="password" id="admNew">
+      <button id="admBtn">Trocar senha de administrador</button><div class="msg" id="admMsg"></div>
+    </section>
+
+    <section>
+      <h2>Configuração</h2>
+      <label>Empresa (a extensão só age quando este nome aparece na tela)</label><input type="text" id="company">
+      <label>Tela "Realizar venda" (regex, sem acento/minúsculo; testada contra URL + título + cabeçalhos)</label><input type="text" id="screenRegex">
+      <label>Botões de remover item (regex sobre texto/title/classe/ícone)</label><input type="text" id="removeRegex">
+      <label>Botões de cancelar venda (regex)</label><input type="text" id="cancelRegex">
+      <label>Atalhos que removem item (separados por vírgula, ex.: Delete, Ctrl+F8)</label><input type="text" id="removeKeys">
+      <label>Atalhos que cancelam venda (ex.: F9, Ctrl+Shift+C)</label><input type="text" id="cancelKeys">
+      <label><input type="checkbox" id="debug"> Modo descoberta (mostra no console F12 cada clique/tecla e como foi classificado)</label>
+      <button class="primary" id="cfgBtn">Salvar configuração</button><button id="cfgReset">Restaurar padrões</button>
+      <div class="msg" id="cfgMsg"></div>
+    </section>
+
+    <section>
+      <h2>Log de autorizações</h2>
+      <button id="csvBtn" class="primary">Exportar CSV</button><button id="refreshBtn">Atualizar</button><button id="clearBtn">Limpar log</button>
+      <div class="tablewrap"><table><thead><tr><th>Data/hora</th><th>Ação</th><th>Produto</th><th>Valor</th><th>Resultado</th><th>Detalhe</th></tr></thead><tbody id="logBody"></tbody></table></div>
+    </section>
+  </div>
+</div>
+<script src="../scripts/common.js"></script>
+<script src="options.js"></script>
+</body></html>

@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Codxis Guard - Senha do Gerente",
+  "version": "1.0.0",
+  "description": "Exige a senha do gerente para remover item ou cancelar venda no PDV web (Codxis).",
+  "permissions": ["storage"],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_title": "Opções do Codxis Guard" },
+  "options_ui": { "page": "options/options.html", "open_in_tab": true },
+  "content_scripts": [
+    {
+      "matches": ["https://web.codxis.api.br/*"],
+      "js": ["scripts/common.js", "scripts/content.js"],
+      "run_at": "document_start",
+      "all_frames": false
+    }
+  ]
+}
