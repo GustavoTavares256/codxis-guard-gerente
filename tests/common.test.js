@@ -108,6 +108,10 @@ describe('helpers puros', () => {
   });
 
   test('regex de tela reconhece "Realizar Venda"', () => {
-    assert.ok(CX.mkRx(CX.DEFAULTS.screenRegex).test(CX.norm('PDV › Realizar Venda')));
+    const rx = CX.mkRx(CX.DEFAULTS.screenRegex);
+    assert.ok(rx.test(CX.norm('PDV › Realizar Venda')));
+    // URL + título reais do PDV Codxis
+    assert.ok(rx.test(CX.norm('https://web.codxis.api.br/sistema/pages/privado/nfce/emissao/pdv Emissão de NFCe')));
+    assert.ok(!rx.test(CX.norm('https://web.codxis.api.br/sistema/pages/privado/index Codxis Web')));
   });
 });

@@ -27,7 +27,17 @@
     lastCheck = Date.now();
     if (!document.body) { active = false; return; }
     const company = norm(cfg.company);
-    const companyOk = !company || norm(document.body.textContent).includes(company);
+    // O nome da empresa aparece no painel, mas não na tela do PDV. Lembramos (por aba) que ela
+    // foi vista; a lista do parceiro (que mostra todas as empresas) zera essa marca.
+    const KEY = 'cx_company_seen';
+    let companyOk = !company;
+    if (!companyOk) {
+      try {
+        if (/indexParceiroPrincipal/i.test(location.href)) sessionStorage.removeItem(KEY);
+        else if (norm(document.body.textContent).includes(company)) sessionStorage.setItem(KEY, company);
+        companyOk = sessionStorage.getItem(KEY) === company;
+      } catch (e) { companyOk = norm(document.body.textContent).includes(company); }
+    }
     const heads = [...document.querySelectorAll('h1,h2,h3,h4,h5,.breadcrumb,[class*=title],[class*=titulo]')]
       .filter(visible).map((e) => (e.textContent || '').slice(0, 200)).join(' ');
     const screenText = norm(location.href + ' ' + document.title + ' ' + heads);

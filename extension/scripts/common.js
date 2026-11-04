@@ -7,7 +7,7 @@ const CX = (() => {
   const DEFAULTS = {
     company: 'F. H. Comercio De Frios Ltda',
     // Regex aplicadas sobre texto normalizado (minúsculo, sem acento).
-    screenRegex: 'realizar venda',
+    screenRegex: 'realizar venda|nfce/emissao/pdv',
     removeRegex: 'excluir|cancelar[\\s_-]*item|remov|lixeira|trash|apagar',
     cancelRegex: 'cancelar[\\s_-]*venda|cancel\\w*[\\s_-]*(o[\\s_-]*)?(cupom|pedido)',
     // Atalhos do PDV Codxis: F7 = Cancelar Item, F9 = Cancelar Venda
