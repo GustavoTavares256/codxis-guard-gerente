@@ -25,26 +25,29 @@
 
   /* ---------- Detecção de tela / empresa ---------- */
   const visible = (el) => !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+  let companyState; // undefined = nunca visto | '' = lista do parceiro | nome normalizado da empresa
+  CX.get('companySeen').then((v) => { if (companyState === undefined) companyState = v; });
+  chrome.storage.onChanged.addListener((ch) => { if (ch.companySeen) companyState = ch.companySeen.newValue; });
+  function setCompany(v) { if (companyState !== v) { companyState = v; CX.set('companySeen', v); } }
   function checkActive() {
     lastCheck = Date.now();
     if (!document.body) { active = false; return; }
     const company = norm(cfg.company);
-    // O nome da empresa aparece no painel, mas não na tela do PDV. Lembramos (por aba) que ela
-    // foi vista; a lista do parceiro (que mostra todas as empresas) zera essa marca.
-    const KEY = 'cx_company_seen';
+    // O nome da empresa aparece no painel, mas não na tela do PDV. Lembramos (compartilhado entre
+    // abas) qual empresa foi vista por último. A lista do parceiro (todas as empresas) zera a marca.
+    // Sem marca nenhuma (undefined) a extensão fica ATIVA: na dúvida, protege.
     let companyOk = !company;
     if (!companyOk) {
-      try {
-        if (/indexParceiroPrincipal/i.test(location.href)) sessionStorage.removeItem(KEY);
-        else if (norm(document.body.textContent).includes(company)) sessionStorage.setItem(KEY, company);
-        companyOk = sessionStorage.getItem(KEY) === company;
-      } catch (e) { companyOk = norm(document.body.textContent).includes(company); }
+      if (/indexParceiroPrincipal/i.test(location.href)) setCompany('');
+      else if (norm(document.body.textContent).includes(company)) setCompany(company);
+      companyOk = companyState === undefined || companyState === company;
     }
     const heads = [...document.querySelectorAll('h1,h2,h3,h4,h5,.breadcrumb,[class*=title],[class*=titulo]')]
       .filter(visible).map((e) => (e.textContent || '').slice(0, 200)).join(' ');
     const screenText = norm(location.href + ' ' + document.title + ' ' + heads);
     const screenOk = !rxScreen || rxScreen.test(screenText);
     active = companyOk && screenOk;
+    try { document.documentElement.setAttribute('data-cx-active', JSON.stringify({ active, companyOk, screenOk, empresa: companyState })); } catch (e) { /* ignore */ }
   }
   const isActive = () => { if (Date.now() - lastCheck > 1500) checkActive(); return active; };
 
