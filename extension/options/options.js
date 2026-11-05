@@ -1,7 +1,7 @@
 const $ = (id) => document.getElementById(id);
 const show = (id, on = true) => $(id).classList.toggle('hidden', !on);
 const say = (id, text, ok) => { const e = $(id); e.textContent = text; e.className = 'msg ' + (ok ? 'ok' : 'bad'); };
-const FIELDS = ['company', 'screenRegex', 'removeRegex', 'cancelRegex', 'priceRegex', 'priceFieldRegex', 'discountDialogRegex', 'removeKeys', 'cancelKeys'];
+const FIELDS = ['company', 'screenRegex', 'removeRegex', 'cancelRegex', 'priceRegex', 'priceFieldRegex', 'discountDialogRegex', 'removeKeys', 'cancelKeys', 'tabsKey', 'tabsSwitchKey'];
 
 async function init() {
   const adm = await CX.get('adminCred');

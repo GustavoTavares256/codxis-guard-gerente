@@ -18,6 +18,9 @@ const CX = (() => {
     // Atalhos do PDV Codxis: F7 = Cancelar Item, F9 = Cancelar Venda
     removeKeys: 'F7',
     cancelKeys: 'F9',
+    // Modo em abas do PDV (opcional): F4 liga/desliga, Shift+F4 alterna Produtos/Pagamento
+    tabsKey: 'F4',
+    tabsSwitchKey: 'Shift+F4',
     restoreCart: true, // oferece reinserir os itens da venda após recarregar a página
     debug: false
   };

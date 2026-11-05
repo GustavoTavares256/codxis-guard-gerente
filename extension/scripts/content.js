@@ -5,7 +5,7 @@
   let cfg = { ...CX.DEFAULTS };
   let rxRemove = null, rxCancel = null, rxScreen = null, rxPrice = null, rxPriceField = null, rxDiscount = null;
   const priceOk = new WeakSet(); // campos de preço já autorizados (até perder o foco)
-  let keysRemove = new Set(), keysCancel = new Set();
+  let keysRemove = new Set(), keysCancel = new Set(), keysTabs = new Set(), keysTabsSwitch = new Set();
   let bypass = false;
   let currentHost = null; // host do modal aberto (null = fechado)
   let active = false, lastCheck = 0;
@@ -18,6 +18,7 @@
     rxPrice = mkRx(cfg.priceRegex); rxPriceField = mkRx(cfg.priceFieldRegex); rxDiscount = mkRx(cfg.discountDialogRegex);
     const toSet = (str) => new Set(str.split(',').map((x) => x.trim()).filter(Boolean).map(normCombo));
     keysRemove = toSet(cfg.removeKeys || ''); keysCancel = toSet(cfg.cancelKeys || '');
+    keysTabs = toSet(cfg.tabsKey || ''); keysTabsSwitch = toSet(cfg.tabsSwitchKey || '');
     lastCheck = 0;
   }
   CX.get('settings').then(applyCfg);
@@ -418,4 +419,78 @@
   }
   const bootCart = () => { mark({ fase: 'boot' }); CX.get('settings').then(() => initCart()); };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bootCart); else bootCart();
+
+  /* ---------- Modo em abas (F4): Produtos | Pagamento ---------- */
+  // Opcional: F4 liga/desliga. O PDV é uma só página (uma só venda); as abas apenas mostram um cartão
+  // por vez em tela cheia. Shift+F4 alterna entre as abas. Fora do modo, nada muda.
+  const TABS_KEY = 'cx_tabs';
+  let tabsMode = ''; // '' (desligado) | 'produtos' | 'pagamento'
+  const pdvCards = () => [...document.querySelectorAll('.v2-principal > .cardv2')];
+
+  function tabsTotal() {
+    const left = pdvCards()[0];
+    if (!left) return '';
+    // o total é um <div> com 2 filhos ("R$" + valor): usa o último elemento cujo texto é só um valor em reais
+    const money = /^R\$\s*[\d.]+,\d{2}$/;
+    const leaves = [...left.querySelectorAll('*')].filter((e) => e.children.length <= 2 && money.test((e.textContent || '').replace(/\s+/g, ' ').trim()));
+    return leaves.length ? leaves[leaves.length - 1].textContent.replace(/\s+/g, ' ').trim() : '';
+  }
+  function tabsCss(dark) {
+    const t = CX.ui.THEMES[dark ? 'dark' : 'light'];
+    return `html[data-cx-tabs] .v2-principal{padding-top:54px!important;box-sizing:border-box!important;height:100vh!important}
+      html[data-cx-tabs] .v2-principal>.cardv2{width:100%!important;max-width:100%!important;flex:1 1 100%!important}
+      html[data-cx-tabs="produtos"] .v2-principal>.cardv2:nth-of-type(1){height:calc(100vh - 54px - 112px)!important;min-height:0!important}
+      html[data-cx-tabs="produtos"] .v2-principal>.cardv2:nth-of-type(2){position:fixed!important;left:0;right:0;bottom:0;height:auto!important;min-height:0!important;z-index:900;padding:6px 12px!important;border-radius:0!important;background:${t.card}!important}
+      html[data-cx-tabs="produtos"] .v2-principal>.cardv2:nth-of-type(2) .v2-direito>*:not(.cx-btns){display:none!important}
+      html[data-cx-tabs="pagamento"] .v2-principal>.cardv2:nth-of-type(1){display:none!important}
+      #cx-tabbar{position:fixed;top:0;left:0;right:0;height:46px;z-index:950;display:flex;align-items:center;gap:8px;padding:0 14px;background:${t.card};color:${t.text};font-family:${CX.ui.FONT};box-shadow:0 1px 0 ${t.inputBorder}33}
+      #cx-tabbar button{height:32px;padding:0 18px;border:0;border-radius:5px;font:500 14px ${CX.ui.FONT};cursor:pointer;background:${t.alt};color:${t.altText};opacity:.75}
+      #cx-tabbar button.on{background:${t.ok};color:${t.okText};opacity:1}
+      #cx-tabbar .tot{margin-left:auto;font-size:14px;font-weight:500}
+      #cx-tabbar .tot b{font-size:20px;font-weight:700;margin-left:6px}
+      #cx-tabbar .hint{font-size:12px;opacity:.7;margin-left:14px}`;
+  }
+  function renderTabs() {
+    let style = document.getElementById('cx-tabs-style'), bar = document.getElementById('cx-tabbar');
+    if (!tabsMode) { if (style) style.remove(); if (bar) bar.remove(); return; }
+    if (!style) { style = document.createElement('style'); style.id = 'cx-tabs-style'; document.head.appendChild(style); }
+    style.textContent = tabsCss(CX.ui.isDark(document));
+    if (!bar) {
+      bar = document.createElement('div'); bar.id = 'cx-tabbar';
+      bar.innerHTML = '<button type="button" data-t="produtos">Produtos</button><button type="button" data-t="pagamento">Pagamento</button>' +
+        '<span class="tot">Total<b></b></span><span class="hint">F4 sai · Shift+F4 alterna</span>';
+      bar.addEventListener('click', (e) => { const b = e.target.closest('button[data-t]'); if (b) { e.preventDefault(); e.stopPropagation(); applyTabs(b.dataset.t); } });
+      document.body.appendChild(bar);
+    }
+    bar.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.t === tabsMode));
+    bar.querySelector('.tot b').textContent = tabsTotal();
+  }
+  function applyTabs(mode) {
+    tabsMode = mode;
+    try { sessionStorage.setItem(TABS_KEY, mode); } catch (e) { /* ignore */ }
+    if (mode) {
+      document.documentElement.setAttribute('data-cx-tabs', mode);
+      // marca a barra de botões (F1, F7, F9...) para continuar visível na aba Produtos
+      document.querySelectorAll('button').forEach((b) => {
+        if (/Cancelar\s*Venda/i.test(b.innerText || '')) { const w = b.closest('.d-flex.flex-wrap'); if (w) w.classList.add('cx-btns'); }
+      });
+    } else document.documentElement.removeAttribute('data-cx-tabs');
+    renderTabs();
+    window.dispatchEvent(new Event('resize'));
+  }
+  setInterval(() => { const b = tabsMode && document.querySelector('#cx-tabbar .tot b'); if (b) b.textContent = tabsTotal(); }, 1000); // total da barra
+
+  window.addEventListener('keydown', (e) => {
+    if (!e.isTrusted || e.altKey || e.ctrlKey || e.metaKey || currentHost || !e.key || !isPdv() || !codeInput()) return;
+    const k = comboOf(e);
+    if (keysTabs.has(k)) { e.preventDefault(); e.stopImmediatePropagation(); applyTabs(tabsMode ? '' : 'produtos'); }
+    else if (tabsMode && keysTabsSwitch.has(k)) { e.preventDefault(); e.stopImmediatePropagation(); applyTabs(tabsMode === 'produtos' ? 'pagamento' : 'produtos'); }
+  }, true);
+
+  (async () => { // se a página recarregar com o modo ligado, mantém
+    for (let i = 0; i < 60 && pdvCards().length < 2; i++) await sleep(250);
+    let saved = '';
+    try { saved = sessionStorage.getItem(TABS_KEY) || ''; } catch (e) { /* ignore */ }
+    if (saved && isPdv() && pdvCards().length === 2) applyTabs(saved);
+  })();
 })();
