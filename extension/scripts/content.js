@@ -319,7 +319,9 @@
 
   function readCart() {
     return itemCells().map((cell) => {
-      const text = (cell.innerText || '').replace(/\s+/g, ' ').trim();
+      // O span só tem o nome; "N - Cod: 101 -" fica na célula (td) que o contém.
+      const td = cell.closest('td') || cell;
+      const text = (td.innerText || '').replace(/\s+/g, ' ').trim();
       const m = text.match(/Cod:\s*(\S+)/i);
       const tr = cell.closest('tr');
       const qty = tr && tr.children[1] ? tr.children[1].innerText.trim() : '';
