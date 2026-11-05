@@ -130,6 +130,20 @@ describe('helpers puros', () => {
     assert.ok(!d.test(CX.norm('formNFCe:outroDialog Confirmar venda')));
   });
 
+  test('tema dos modais: luminância e paletas', () => {
+    assert.ok(CX.ui.luminance('rgb(255, 255, 255)') > 250);
+    assert.ok(CX.ui.luminance('rgb(4, 8, 35)') < 20);
+    assert.equal(CX.ui.luminance('rgba(0, 0, 0, 0)'), null);
+    assert.equal(CX.ui.luminance('transparent'), null);
+    // cores medidas no modal "Autorização" do Codxis (tema claro)
+    assert.equal(CX.ui.THEMES.light.ok, '#040823');
+    assert.equal(CX.ui.THEMES.light.alt, '#282e3f');
+    for (const dark of [false, true]) {
+      const css = CX.ui.modalCss(dark);
+      assert.ok(css.includes('border-radius:20px') && css.includes(CX.ui.THEMES[dark ? 'dark' : 'light'].card));
+    }
+  });
+
   test('regex de tela reconhece "Realizar Venda"', () => {
     const rx = CX.mkRx(CX.DEFAULTS.screenRegex);
     assert.ok(rx.test(CX.norm('PDV › Realizar Venda')));

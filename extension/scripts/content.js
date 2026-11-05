@@ -148,32 +148,17 @@
       host.style.cssText = 'all:initial;position:fixed;inset:0;z-index:2147483647;';
       const root = host.attachShadow({ mode: 'closed' });
       root.innerHTML = `
-        <style>
-          *{box-sizing:border-box;font-family:Segoe UI,Roboto,Arial,sans-serif}
-          .bg{position:fixed;inset:0;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center}
-          .box{background:#fff;width:380px;max-width:92vw;border-radius:10px;box-shadow:0 20px 50px rgba(0,0,0,.35);padding:22px}
-          h2{margin:0 0 4px;font-size:18px;color:#0f172a}
-          .sub{margin:0 0 14px;font-size:13px;color:#475569}
-          .info{background:#f1f5f9;border-radius:6px;padding:8px 10px;font-size:13px;color:#0f172a;margin-bottom:14px;word-break:break-word}
-          .info:empty{display:none}
-          input{width:100%;padding:10px 12px;font-size:16px;border:1px solid #cbd5e1;border-radius:6px;outline:none}
-          input:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.2)}
-          input:disabled{background:#f1f5f9}
-          .err{min-height:18px;margin:8px 0 0;font-size:13px;color:#b91c1c}
-          .row{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
-          button{padding:9px 16px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;font-size:14px;cursor:pointer}
-          button.ok{background:#2563eb;border-color:#2563eb;color:#fff}
-          button:disabled{opacity:.5;cursor:not-allowed}
-        </style>
+        <style>${CX.ui.modalCss(CX.ui.isDark(document))}</style>
         <div class="bg"><div class="box" role="dialog" aria-modal="true">
-          <h2>Autorização do gerente</h2>
-          <p class="sub"></p><div class="info"></div>
-          <input type="password" autocomplete="new-password" placeholder="Senha do gerente" />
+          <div class="head"><div class="ico">${CX.ui.ICON}</div><div><h2>Autorização</h2><p class="sub"></p></div></div>
+          <div class="info"></div>
+          <label>Senha do gerente</label>
+          <input type="password" autocomplete="new-password" />
           <p class="err"></p>
-          <div class="row"><button class="cancel">Cancelar (Esc)</button><button class="ok">Autorizar (Enter)</button></div>
+          <div class="row"><button class="ok">Confirmar</button><button class="cancel">Fechar</button></div>
         </div></div>`;
       const $ = (s) => root.querySelector(s);
-      $('.sub').textContent = LABEL[type] + ' — digite a senha do gerente para continuar.';
+      $('.sub').textContent = LABEL[type] + ' — senha do gerente necessária.';
       $('.info').textContent = [info.product, info.value].filter(Boolean).join('  •  ');
       const input = $('input'), err = $('.err'), okBtn = $('.ok');
       let timer = null, done = false;
@@ -377,25 +362,16 @@
     const host = document.createElement('div');
     host.style.cssText = 'all:initial;position:fixed;inset:0;z-index:2147483647;';
     const root = host.attachShadow({ mode: 'closed' });
-    root.innerHTML = `<style>
-      *{box-sizing:border-box;font-family:Segoe UI,Roboto,Arial,sans-serif}
-      .bg{position:fixed;inset:0;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center}
-      .box{background:#fff;width:420px;max-width:92vw;border-radius:10px;box-shadow:0 20px 50px rgba(0,0,0,.35);padding:22px;color:#0f172a}
-      h2{margin:0 0 6px;font-size:18px} p{margin:0 0 10px;font-size:13px;color:#475569}
-      ul{margin:0 0 12px;padding:8px 10px 8px 26px;background:#f1f5f9;border-radius:6px;font-size:12px;max-height:180px;overflow:auto}
-      .row{display:flex;gap:8px;justify-content:flex-end}
-      button{padding:9px 16px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;font-size:14px;cursor:pointer}
-      button.ok{background:#2563eb;border-color:#2563eb;color:#fff}
-    </style><div class="bg"><div class="box">${html}</div></div>`;
+    root.innerHTML = `<style>${CX.ui.modalCss(CX.ui.isDark(document))}</style><div class="bg"><div class="box">${html}</div></div>`;
     (document.body || document.documentElement).appendChild(host);
     return { host, root };
   }
 
   function askRestore(cart) {
     return new Promise((resolve) => {
-      const { host, root } = overlay(`<h2>Restaurar venda anterior?</h2>
-        <p>A página foi recarregada e a venda foi zerada. Reinserir os itens abaixo? (preços, descontos e pagamentos não são restaurados)</p>
-        <ul></ul><div class="row"><button class="no">Descartar (Esc)</button><button class="ok">Restaurar (Enter)</button></div>`);
+      const { host, root } = overlay(`<div class="head"><div class="ico">${CX.ui.ICON}</div><div><h2>Restaurar venda?</h2><p class="sub">A página recarregou e a venda foi zerada.</p></div></div>
+        <p>Reinserir os itens abaixo? Preços, descontos e pagamentos não são restaurados.</p>
+        <ul></ul><div class="row"><button class="ok">Restaurar</button><button class="no">Descartar</button></div>`);
       const ul = root.querySelector('ul');
       cart.items.forEach((i) => { const li = document.createElement('li'); li.textContent = i.nome + '  — qtd ' + i.qty; ul.appendChild(li); });
       currentHost = host;
@@ -412,7 +388,7 @@
 
   async function restoreCart(cart) {
     restoring = true;
-    const { host, root } = overlay('<h2>Restaurando venda…</h2><p class="st"></p>');
+    const { host, root } = overlay(`<div class="head"><div class="ico">${CX.ui.ICON}</div><div><h2>Restaurando…</h2><p class="sub st"></p></div></div>`);
     currentHost = host;
     let ok = 0;
     try {
