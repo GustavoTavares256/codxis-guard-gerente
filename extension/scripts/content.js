@@ -494,15 +494,30 @@
     if (saved && isPdv() && pdvCards().length === 2) applyTabs(saved);
   })();
 
-  /* ---------- Cor do nome do produto (só na lista de itens do PDV) ---------- */
+  /* ---------- Nome do produto: negrito; vermelho se o produto for inativo (só na lista do PDV) ---------- */
+  const rowsOfItems = () => itemCells().map((cell) => cell.closest('tr')).filter(Boolean);
+  function markInactive() {
+    const rx = mkRx(cfg.inactiveRegex);
+    rowsOfItems().forEach((tr) => {
+      const inactive = !!rx && rx.test(norm(tr.innerText + ' ' + (tr.getAttribute('title') || '') + ' ' + (tr.className || '')));
+      tr.classList.toggle('cx-inativo', inactive);
+    });
+  }
   function applyNameStyle() {
     let el = document.getElementById('cx-name-style');
-    const color = (cfg.productNameColor || '').trim();
-    if (color && isPdv() && CSS.supports('color', color)) {
+    const color = (cfg.inactiveColor || '').trim();
+    const rules = [];
+    if (cfg.boldProductName) rules.push('[id$="tableProdutosNovoLayout"] [id$="descricaoProdTable"]{font-weight:700!important}');
+    if (color && CSS.supports('color', color)) rules.push('[id$="tableProdutosNovoLayout"] tr.cx-inativo [id$="descricaoProdTable"]{color:' + color + '!important}');
+    if (rules.length && isPdv()) {
       if (!el) { el = document.createElement('style'); el.id = 'cx-name-style'; (document.head || document.documentElement).appendChild(el); }
-      el.textContent = '[id$="tableProdutosNovoLayout"] [id$="descricaoProdTable"]{color:' + color + '!important}';
+      el.textContent = rules.join('');
+      markInactive();
     } else if (el) el.remove();
   }
+  let inactiveTimer = null;
+  new MutationObserver(() => { clearTimeout(inactiveTimer); inactiveTimer = setTimeout(() => { if (isPdv()) markInactive(); }, 500); })
+    .observe(document.documentElement, { childList: true, subtree: true });
   CX.get('settings').then(() => { applyNameStyle(); setTimeout(applyNameStyle, 1500); });
   chrome.storage.onChanged.addListener((ch) => { if (ch.settings) setTimeout(applyNameStyle, 50); });
 })();

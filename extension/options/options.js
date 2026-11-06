@@ -1,7 +1,7 @@
 const $ = (id) => document.getElementById(id);
 const show = (id, on = true) => $(id).classList.toggle('hidden', !on);
 const say = (id, text, ok) => { const e = $(id); e.textContent = text; e.className = 'msg ' + (ok ? 'ok' : 'bad'); };
-const FIELDS = ['company', 'screenRegex', 'removeRegex', 'cancelRegex', 'priceRegex', 'priceFieldRegex', 'discountDialogRegex', 'removeKeys', 'cancelKeys', 'tabsKey', 'tabsSwitchKey', 'productNameColor'];
+const FIELDS = ['company', 'screenRegex', 'removeRegex', 'cancelRegex', 'priceRegex', 'priceFieldRegex', 'discountDialogRegex', 'removeKeys', 'cancelKeys', 'tabsKey', 'tabsSwitchKey', 'inactiveColor', 'inactiveRegex'];
 
 async function init() {
   const adm = await CX.get('adminCred');
@@ -34,6 +34,7 @@ async function unlock() {
   FIELDS.forEach((f) => ($(f).value = s[f]));
   $('debug').checked = !!s.debug;
   $('restoreCart').checked = s.restoreCart !== false;
+  $('boldProductName').checked = s.boldProductName !== false;
   $('mgrStatus').textContent = (await CX.get('managerCred')) ? 'Senha do gerente: cadastrada.' : 'Senha do gerente: NÃO cadastrada (todas as ações protegidas serão negadas).';
   renderLog();
 }
@@ -58,9 +59,9 @@ $('admBtn').onclick = async () => {
 };
 
 $('cfgBtn').onclick = async () => {
-  const s = { debug: $('debug').checked, restoreCart: $('restoreCart').checked };
+  const s = { debug: $('debug').checked, restoreCart: $('restoreCart').checked, boldProductName: $('boldProductName').checked };
   FIELDS.forEach((f) => (s[f] = $(f).value.trim()));
-  for (const f of ['screenRegex', 'removeRegex', 'cancelRegex', 'priceRegex', 'priceFieldRegex', 'discountDialogRegex']) {
+  for (const f of ['screenRegex', 'removeRegex', 'cancelRegex', 'priceRegex', 'priceFieldRegex', 'discountDialogRegex', 'inactiveRegex']) {
     try { new RegExp(s[f], 'i'); } catch (e) { return say('cfgMsg', 'Regex inválida em ' + f, false); }
   }
   await CX.set('settings', s);

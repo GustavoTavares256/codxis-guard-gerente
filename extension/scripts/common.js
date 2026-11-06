@@ -21,7 +21,9 @@ const CX = (() => {
     // Modo em abas do PDV (opcional): F4 liga/desliga, Shift+F4 alterna Produtos/Pagamento
     tabsKey: 'F4',
     tabsSwitchKey: 'Shift+F4',
-    productNameColor: '#e53935', // cor do nome do produto na lista de itens do PDV (vazio = padrão do sistema)
+    boldProductName: true, // nome do produto em negrito na lista de itens do PDV
+    inactiveColor: '#e53935', // cor do nome quando o produto é inativo (vazio = sem destaque)
+    inactiveRegex: 'inativ', // texto da linha do item que indica produto inativo (sem acento/minúsculo)
     restoreCart: true, // oferece reinserir os itens da venda após recarregar a página
     debug: false
   };
