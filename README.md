@@ -68,3 +68,13 @@ A interceptação no DOM (`content.js`) deve ser verificada manualmente no PDV.
 Por rodar no navegador, a proteção pode ser contornada por quem tiver acesso ao
 perfil do Chrome ou ao DevTools; ela serve como controle operacional, não como
 barreira de segurança forte. A validação definitiva deve existir no servidor.
+
+## Publicação na Chrome Web Store (não listada)
+
+Os materiais estão em [`store/`](store): textos da página da loja ([`LISTING.md`](store/LISTING.md)),
+[política de privacidade](store/PRIVACY.md) e o [passo a passo](store/PUBLICAR.md).
+
+```bash
+npm run pack    # gera dist/codxis-guard-<versão>.zip para enviar à loja
+npm run icons   # recria os ícones (extension/icons)
+```
