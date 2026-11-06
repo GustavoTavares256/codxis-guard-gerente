@@ -466,8 +466,9 @@
     bar.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.t === tabsMode));
     bar.querySelector('.tot b').textContent = tabsTotal();
   }
-  // Botões que finalizam/recebem a venda: NFC-e (F1), PV (F2) e Financeiro. Ficam só na aba Pagamento.
-  const FIN_BTN = /^\s*(NFC-?e\s*\(F1\)|PV\s*\(F2\)|Financeiro)\s*$/i;
+  // Botões escondidos na aba Produtos: os que finalizam/recebem a venda (NFC-e F1, PV F2, Financeiro) e
+  // os de consulta/envio (Consultar Vendas F8, Pedidos Finalizados, Trocar Tipo de Envio).
+  const FIN_BTN = /^\s*(NFC-?e\s*\(F1\)|PV\s*\(F2\)|Financeiro|Consultar\s*Vendas\s*\(F8\)|Pedidos\s*Finalizados|Trocar\s*Tipo\s*de\s*Envio)\s*$/i;
   function markTabButtons() {
     document.querySelectorAll('button').forEach((b) => {
       const t = b.innerText || '';
@@ -490,6 +491,7 @@
   window.addEventListener('keydown', (e) => {
     if (!e.isTrusted || e.altKey || e.ctrlKey || e.metaKey || currentHost || !e.key || !isPdv() || !codeInput()) return;
     const k = comboOf(e);
+    if (tabsMode === 'produtos' && k === 'F8') { e.preventDefault(); e.stopImmediatePropagation(); return; }
     if (tabsMode === 'produtos' && (k === 'F1' || k === 'F2')) { e.preventDefault(); e.stopImmediatePropagation(); applyTabs('pagamento'); return; }
     if (keysTabs.has(k)) { e.preventDefault(); e.stopImmediatePropagation(); applyTabs(tabsMode ? '' : 'produtos'); }
     else if (tabsMode && keysTabsSwitch.has(k)) { e.preventDefault(); e.stopImmediatePropagation(); applyTabs(tabsMode === 'produtos' ? 'pagamento' : 'produtos'); }
