@@ -443,6 +443,7 @@
       html[data-cx-tabs="produtos"] .v2-principal>.cardv2:nth-of-type(2){position:fixed!important;left:0;right:0;bottom:0;height:auto!important;min-height:0!important;z-index:900;padding:6px 12px!important;border-radius:0!important;background:${t.card}!important}
       html[data-cx-tabs="produtos"] .v2-principal>.cardv2:nth-of-type(2) .v2-direito>*:not(.cx-btns){display:none!important}
       html[data-cx-tabs="pagamento"] .v2-principal>.cardv2:nth-of-type(1){display:none!important}
+      html[data-cx-tabs="produtos"] .cx-fin{display:none!important}
       #cx-tabbar{position:fixed;top:0;left:0;right:0;height:46px;z-index:950;display:flex;align-items:center;gap:8px;padding:0 14px;background:${t.card};color:${t.text};font-family:${CX.ui.FONT};box-shadow:0 1px 0 ${t.inputBorder}33}
       #cx-tabbar button{height:32px;padding:0 18px;border:0;border-radius:5px;font:500 14px ${CX.ui.FONT};cursor:pointer;background:${t.alt};color:${t.altText};opacity:.75}
       #cx-tabbar button.on{background:${t.ok};color:${t.okText};opacity:1}
@@ -465,24 +466,31 @@
     bar.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.t === tabsMode));
     bar.querySelector('.tot b').textContent = tabsTotal();
   }
+  // Botões que finalizam/recebem a venda: NFC-e (F1), PV (F2) e Financeiro. Ficam só na aba Pagamento.
+  const FIN_BTN = /^\s*(NFC-?e\s*\(F1\)|PV\s*\(F2\)|Financeiro)\s*$/i;
+  function markTabButtons() {
+    document.querySelectorAll('button').forEach((b) => {
+      const t = b.innerText || '';
+      if (/Cancelar\s*Venda/i.test(t)) { const w = b.closest('.d-flex.flex-wrap'); if (w) w.classList.add('cx-btns'); }
+      if (FIN_BTN.test(t)) (b.closest('.botoes-div') || b).classList.add('cx-fin');
+    });
+  }
   function applyTabs(mode) {
     tabsMode = mode;
     try { sessionStorage.setItem(TABS_KEY, mode); } catch (e) { /* ignore */ }
     if (mode) {
       document.documentElement.setAttribute('data-cx-tabs', mode);
-      // marca a barra de botões (F1, F7, F9...) para continuar visível na aba Produtos
-      document.querySelectorAll('button').forEach((b) => {
-        if (/Cancelar\s*Venda/i.test(b.innerText || '')) { const w = b.closest('.d-flex.flex-wrap'); if (w) w.classList.add('cx-btns'); }
-      });
+      markTabButtons(); // barra de botões (F7, F9...) segue visível na aba Produtos, sem os que finalizam
     } else document.documentElement.removeAttribute('data-cx-tabs');
     renderTabs();
     window.dispatchEvent(new Event('resize'));
   }
-  setInterval(() => { const b = tabsMode && document.querySelector('#cx-tabbar .tot b'); if (b) b.textContent = tabsTotal(); }, 1000); // total da barra
+  setInterval(() => { if (!tabsMode) return; markTabButtons(); const b = document.querySelector('#cx-tabbar .tot b'); if (b) b.textContent = tabsTotal(); }, 1000); // total da barra
 
   window.addEventListener('keydown', (e) => {
     if (!e.isTrusted || e.altKey || e.ctrlKey || e.metaKey || currentHost || !e.key || !isPdv() || !codeInput()) return;
     const k = comboOf(e);
+    if (tabsMode === 'produtos' && (k === 'F1' || k === 'F2')) { e.preventDefault(); e.stopImmediatePropagation(); applyTabs('pagamento'); return; }
     if (keysTabs.has(k)) { e.preventDefault(); e.stopImmediatePropagation(); applyTabs(tabsMode ? '' : 'produtos'); }
     else if (tabsMode && keysTabsSwitch.has(k)) { e.preventDefault(); e.stopImmediatePropagation(); applyTabs(tabsMode === 'produtos' ? 'pagamento' : 'produtos'); }
   }, true);
