@@ -577,24 +577,29 @@
   new MutationObserver(() => { clearTimeout(listTimer); listTimer = setTimeout(() => { if (isProductList()) { listStyle(); markList(); } }, 400); })
     .observe(document.documentElement, { childList: true, subtree: true });
 
-  // Aprende a situação ao abrir "Editar Produto N" (só lê; nunca altera o cadastro).
+  // Aprende a situação em "Editar Produto N" (só lê; nunca altera o cadastro):
+  //  - ao terminar de carregar o campo "Ativo" (a tela leva até ~25 s) e
+  //  - NO MOMENTO em que você clica em "Alterar": grava o valor escolhido na hora, sem esperar recarregar.
+  function commitAtivo() {
+    const m = (document.body.innerText || '').match(/Editar Produto\s+(\d+)/i);
+    const lab = [...document.querySelectorAll('label')].find((l) => /^Ativo\*/.test((l.innerText || '').trim()));
+    const sel = lab && lab.parentElement && lab.parentElement.querySelector('.ui-selectonemenu-label');
+    const v = sel && (sel.textContent || '').trim();
+    const comp = currentCompany();
+    if (!(m && comp && (v === 'Sim' || v === 'Não'))) return false;
+    const set = new Set(learned[comp] || []);
+    if (v === 'Não') set.add(m[1]); else set.delete(m[1]);
+    const next = { ...learned, [comp]: [...set] };
+    if (JSON.stringify(next) !== JSON.stringify(learned)) { learned = next; CX.set('inactiveLearned', next); }
+    return true;
+  }
   async function learnProduct() {
     if (!isProductEdit()) return;
-    for (let i = 0; i < 160; i++) {
-      await sleep(250);
-      const m = (document.body.innerText || '').match(/Editar Produto\s+(\d+)/i);
-      const lab = [...document.querySelectorAll('label')].find((l) => /^Ativo\*/.test((l.innerText || '').trim()));
-      const sel = lab && lab.parentElement && lab.parentElement.querySelector('.ui-selectonemenu-label');
-      const v = sel && (sel.textContent || '').trim();
-      const comp = currentCompany();
-      if (m && comp && (v === 'Sim' || v === 'Não')) {
-        const set = new Set(learned[comp] || []);
-        if (v === 'Não') set.add(m[1]); else set.delete(m[1]);
-        const next = { ...learned, [comp]: [...set] };
-        if (JSON.stringify(next) !== JSON.stringify(learned)) { learned = next; CX.set('inactiveLearned', next); }
-        return;
-      }
-    }
+    document.addEventListener('click', (e) => {
+      const b = e.target && e.target.closest && e.target.closest('button,a');
+      if (b && /^\s*Alterar\s*$/i.test(b.innerText || '')) commitAtivo();
+    }, true);
+    for (let i = 0; i < 400; i++) { if (commitAtivo()) return; await sleep(150); }
   }
   learnProduct();
 })();
