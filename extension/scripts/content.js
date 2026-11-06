@@ -495,6 +495,9 @@
   })();
 
   /* ---------- Nome do produto: negrito; vermelho se o produto for inativo (só na lista do PDV) ---------- */
+  // Destaque da linha inteira: fundo translúcido da cor escolhida (o texto continua legível) + faixa à esquerda.
+  const rowCss = (sel, color) => sel + ' > td{background-color:color-mix(in srgb,' + color + ' 24%,transparent)!important}' +
+    sel + ' > td:first-child{box-shadow:inset 5px 0 0 ' + color + '!important}';
   const rowsOfItems = () => itemCells().map((cell) => cell.closest('tr')).filter(Boolean);
   const codeOfRow = (tr) => { const m = (tr.innerText || '').match(/Cod:\s*(\S+)/i); return m ? m[1] : ''; };
   function markInactive() {
@@ -510,7 +513,7 @@
     const color = (cfg.inactiveColor || '').trim();
     const rules = [];
     if (cfg.boldProductName) rules.push('[id$="tableProdutosNovoLayout"] [id$="descricaoProdTable"]{font-weight:700!important}');
-    if (color && CSS.supports('color', color)) rules.push('[id$="tableProdutosNovoLayout"] tr.cx-inativo [id$="descricaoProdTable"]{color:' + color + '!important}');
+    if (color && CSS.supports('color', color)) rules.push(rowCss('[id$="tableProdutosNovoLayout"] tr.cx-inativo', color));
     if (rules.length && isPdv()) {
       if (!el) { el = document.createElement('style'); el.id = 'cx-name-style'; (document.head || document.documentElement).appendChild(el); }
       el.textContent = rules.join('');
@@ -523,20 +526,33 @@
   CX.get('settings').then(() => { applyNameStyle(); setTimeout(applyNameStyle, 1500); });
   chrome.storage.onChanged.addListener((ch) => { if (ch.settings) setTimeout(applyNameStyle, 50); });
 
-  /* ---------- Produtos inativos em vermelho (Consulta de Produtos) ---------- */
-  // A lista não traz a situação do produto. Fontes: (1) códigos digitados nas Opções e
-  // (2) códigos "aprendidos": ao abrir a edição de um produto com Ativo = Não (ou Sim, que remove).
-  let learnedInactive = new Set();
-  const inactiveSet = () => new Set([...String(cfg.inactiveCodes || '').split(/[\s,;]+/).filter(Boolean), ...learnedInactive]);
+  /* ---------- Produtos inativos em destaque (Consulta de Produtos / PDV) ---------- */
+  // A lista não traz a situação do produto. Fontes, SEMPRE por empresa (códigos se repetem entre empresas):
+  // (1) códigos digitados nas Opções (valem só para a empresa configurada) e
+  // (2) códigos "aprendidos" ao abrir a edição de um produto com Ativo = Não (Sim remove).
+  let learned = {}; // { empresaNormalizada: [codigos] }
   const isProductList = () => /\/cadastro\/produto\/produto\/select/i.test(location.pathname);
   const isProductEdit = () => /\/cadastro\/produto\/produto\/alter/i.test(location.pathname);
+  // Empresa atual: lida do seletor do topo (existe nas telas do sistema); no PDV usa a marca da empresa vista.
+  function currentCompany() {
+    const el = document.querySelector('[id$="empresas_label"]');
+    const t = el ? norm(el.textContent) : '';
+    return t || (companyState || '');
+  }
+  function inactiveSet() {
+    const comp = currentCompany();
+    const out = new Set(learned[comp] || []);
+    const mine = norm(cfg.company);
+    if (comp && (!mine || comp.includes(mine))) String(cfg.inactiveCodes || '').split(/[\s,;]+/).filter(Boolean).forEach((c) => out.add(c));
+    return out;
+  }
 
   function listStyle() {
     let el = document.getElementById('cx-list-style');
     const color = (cfg.inactiveColor || '').trim();
     if (isProductList() && color && CSS.supports('color', color)) {
       if (!el) { el = document.createElement('style'); el.id = 'cx-list-style'; (document.head || document.documentElement).appendChild(el); }
-      el.textContent = 'tr.cx-inativo-lista td:nth-child(2){color:' + color + '!important}';
+      el.textContent = rowCss('tr.cx-inativo-lista', color) + 'tr.cx-inativo-lista td:nth-child(2){font-weight:700!important}';
     } else if (el) el.remove();
   }
   function markList() {
@@ -550,9 +566,10 @@
   }
   function refreshInactive() { listStyle(); markList(); if (isPdv()) markInactive(); }
 
-  CX.get('inactiveLearned').then((v) => { learnedInactive = new Set(v || []); refreshInactive(); });
+  const loadLearned = (v) => { learned = v && typeof v === 'object' && !Array.isArray(v) ? v : {}; }; // formato antigo (lista) é descartado
+  CX.get('inactiveLearned').then((v) => { loadLearned(v); refreshInactive(); });
   chrome.storage.onChanged.addListener((ch) => {
-    if (ch.inactiveLearned) { learnedInactive = new Set(ch.inactiveLearned.newValue || []); refreshInactive(); }
+    if (ch.inactiveLearned) { loadLearned(ch.inactiveLearned.newValue); refreshInactive(); }
     if (ch.settings) setTimeout(refreshInactive, 80);
   });
   CX.get('settings').then(() => { refreshInactive(); setTimeout(refreshInactive, 1500); });
@@ -569,10 +586,12 @@
       const lab = [...document.querySelectorAll('label')].find((l) => /^Ativo\*/.test((l.innerText || '').trim()));
       const sel = lab && lab.parentElement && lab.parentElement.querySelector('.ui-selectonemenu-label');
       const v = sel && (sel.textContent || '').trim();
-      if (m && (v === 'Sim' || v === 'Não')) {
-        const set = new Set(learnedInactive);
+      const comp = currentCompany();
+      if (m && comp && (v === 'Sim' || v === 'Não')) {
+        const set = new Set(learned[comp] || []);
         if (v === 'Não') set.add(m[1]); else set.delete(m[1]);
-        if (set.size !== learnedInactive.size || [...set].some((x) => !learnedInactive.has(x))) { learnedInactive = set; CX.set('inactiveLearned', [...set]); }
+        const next = { ...learned, [comp]: [...set] };
+        if (JSON.stringify(next) !== JSON.stringify(learned)) { learned = next; CX.set('inactiveLearned', next); }
         return;
       }
     }
