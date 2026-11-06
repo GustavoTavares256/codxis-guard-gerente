@@ -496,11 +496,13 @@
 
   /* ---------- Nome do produto: negrito; vermelho se o produto for inativo (só na lista do PDV) ---------- */
   const rowsOfItems = () => itemCells().map((cell) => cell.closest('tr')).filter(Boolean);
+  const codeOfRow = (tr) => { const m = (tr.innerText || '').match(/Cod:\s*(\S+)/i); return m ? m[1] : ''; };
   function markInactive() {
     const rx = mkRx(cfg.inactiveRegex);
+    const codes = new Set(String(cfg.inactiveCodes || '').split(/[\s,;]+/).filter(Boolean));
     rowsOfItems().forEach((tr) => {
-      const inactive = !!rx && rx.test(norm(tr.innerText + ' ' + (tr.getAttribute('title') || '') + ' ' + (tr.className || '')));
-      tr.classList.toggle('cx-inativo', inactive);
+      const byText = !!rx && rx.test(norm(tr.innerText + ' ' + (tr.getAttribute('title') || '') + ' ' + (tr.className || '')));
+      tr.classList.toggle('cx-inativo', byText || codes.has(codeOfRow(tr)));
     });
   }
   function applyNameStyle() {
