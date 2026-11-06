@@ -459,7 +459,7 @@
     if (!bar) {
       bar = document.createElement('div'); bar.id = 'cx-tabbar';
       bar.innerHTML = '<button type="button" data-t="produtos">Produtos</button><button type="button" data-t="pagamento">Pagamento</button>' +
-        '<span class="tot">Total<b></b></span><span class="hint">F4 sai · Shift+F4 alterna</span>';
+        '<span class="tot">Total<b></b></span><span class="hint">F4: layout original · Shift+F4: alterna</span>';
       bar.addEventListener('click', (e) => { const b = e.target.closest('button[data-t]'); if (b) { e.preventDefault(); e.stopPropagation(); applyTabs(b.dataset.t); } });
       document.body.appendChild(bar);
     }
@@ -497,10 +497,14 @@
     else if (tabsMode && keysTabsSwitch.has(k)) { e.preventDefault(); e.stopImmediatePropagation(); applyTabs(tabsMode === 'produtos' ? 'pagamento' : 'produtos'); }
   }, true);
 
-  (async () => { // se a página recarregar com o modo ligado, mantém
+  (async () => {
+    // Padrão: o PDV abre em abas. F4 volta ao layout original e essa escolha (por aba do navegador)
+    // vale também após recarregar; sem escolha anterior, usa o padrão das Opções.
+    await CX.get('settings');
     for (let i = 0; i < 60 && pdvCards().length < 2; i++) await sleep(250);
-    let saved = '';
-    try { saved = sessionStorage.getItem(TABS_KEY) || ''; } catch (e) { /* ignore */ }
+    let saved = null;
+    try { saved = sessionStorage.getItem(TABS_KEY); } catch (e) { /* ignore */ }
+    if (saved === null) saved = cfg.tabsDefault ? 'produtos' : '';
     if (saved && isPdv() && pdvCards().length === 2) applyTabs(saved);
   })();
 

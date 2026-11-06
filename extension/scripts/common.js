@@ -19,6 +19,7 @@ const CX = (() => {
     removeKeys: 'F7',
     cancelKeys: 'F9',
     // Modo em abas do PDV (opcional): F4 liga/desliga, Shift+F4 alterna Produtos/Pagamento
+    tabsDefault: true, // abre o PDV já em abas (F4 volta ao layout original do sistema)
     tabsKey: 'F4',
     tabsSwitchKey: 'Shift+F4',
     boldProductName: true, // nome do produto em negrito na lista de itens do PDV
