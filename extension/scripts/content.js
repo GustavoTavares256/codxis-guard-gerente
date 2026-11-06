@@ -499,7 +499,7 @@
   const codeOfRow = (tr) => { const m = (tr.innerText || '').match(/Cod:\s*(\S+)/i); return m ? m[1] : ''; };
   function markInactive() {
     const rx = mkRx(cfg.inactiveRegex);
-    const codes = new Set(String(cfg.inactiveCodes || '').split(/[\s,;]+/).filter(Boolean));
+    const codes = inactiveSet();
     rowsOfItems().forEach((tr) => {
       const byText = !!rx && rx.test(norm(tr.innerText + ' ' + (tr.getAttribute('title') || '') + ' ' + (tr.className || '')));
       tr.classList.toggle('cx-inativo', byText || codes.has(codeOfRow(tr)));
@@ -522,4 +522,60 @@
     .observe(document.documentElement, { childList: true, subtree: true });
   CX.get('settings').then(() => { applyNameStyle(); setTimeout(applyNameStyle, 1500); });
   chrome.storage.onChanged.addListener((ch) => { if (ch.settings) setTimeout(applyNameStyle, 50); });
+
+  /* ---------- Produtos inativos em vermelho (Consulta de Produtos) ---------- */
+  // A lista não traz a situação do produto. Fontes: (1) códigos digitados nas Opções e
+  // (2) códigos "aprendidos": ao abrir a edição de um produto com Ativo = Não (ou Sim, que remove).
+  let learnedInactive = new Set();
+  const inactiveSet = () => new Set([...String(cfg.inactiveCodes || '').split(/[\s,;]+/).filter(Boolean), ...learnedInactive]);
+  const isProductList = () => /\/cadastro\/produto\/produto\/select/i.test(location.pathname);
+  const isProductEdit = () => /\/cadastro\/produto\/produto\/alter/i.test(location.pathname);
+
+  function listStyle() {
+    let el = document.getElementById('cx-list-style');
+    const color = (cfg.inactiveColor || '').trim();
+    if (isProductList() && color && CSS.supports('color', color)) {
+      if (!el) { el = document.createElement('style'); el.id = 'cx-list-style'; (document.head || document.documentElement).appendChild(el); }
+      el.textContent = 'tr.cx-inativo-lista td:nth-child(2){color:' + color + '!important}';
+    } else if (el) el.remove();
+  }
+  function markList() {
+    if (!isProductList()) return;
+    const codes = inactiveSet();
+    document.querySelectorAll('tbody tr').forEach((tr) => {
+      if (tr.children.length <= 4) return;
+      const cod = tr.children[0].innerText.trim();
+      tr.classList.toggle('cx-inativo-lista', /^\d+$/.test(cod) && codes.has(cod));
+    });
+  }
+  function refreshInactive() { listStyle(); markList(); if (isPdv()) markInactive(); }
+
+  CX.get('inactiveLearned').then((v) => { learnedInactive = new Set(v || []); refreshInactive(); });
+  chrome.storage.onChanged.addListener((ch) => {
+    if (ch.inactiveLearned) { learnedInactive = new Set(ch.inactiveLearned.newValue || []); refreshInactive(); }
+    if (ch.settings) setTimeout(refreshInactive, 80);
+  });
+  CX.get('settings').then(() => { refreshInactive(); setTimeout(refreshInactive, 1500); });
+  let listTimer = null;
+  new MutationObserver(() => { clearTimeout(listTimer); listTimer = setTimeout(() => { if (isProductList()) { listStyle(); markList(); } }, 400); })
+    .observe(document.documentElement, { childList: true, subtree: true });
+
+  // Aprende a situação ao abrir "Editar Produto N" (só lê; nunca altera o cadastro).
+  async function learnProduct() {
+    if (!isProductEdit()) return;
+    for (let i = 0; i < 160; i++) {
+      await sleep(250);
+      const m = (document.body.innerText || '').match(/Editar Produto\s+(\d+)/i);
+      const lab = [...document.querySelectorAll('label')].find((l) => /^Ativo\*/.test((l.innerText || '').trim()));
+      const sel = lab && lab.parentElement && lab.parentElement.querySelector('.ui-selectonemenu-label');
+      const v = sel && (sel.textContent || '').trim();
+      if (m && (v === 'Sim' || v === 'Não')) {
+        const set = new Set(learnedInactive);
+        if (v === 'Não') set.add(m[1]); else set.delete(m[1]);
+        if (set.size !== learnedInactive.size || [...set].some((x) => !learnedInactive.has(x))) { learnedInactive = set; CX.set('inactiveLearned', [...set]); }
+        return;
+      }
+    }
+  }
+  learnProduct();
 })();

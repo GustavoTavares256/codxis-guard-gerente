@@ -23,7 +23,7 @@ const CX = (() => {
     tabsSwitchKey: 'Shift+F4',
     boldProductName: true, // nome do produto em negrito na lista de itens do PDV
     inactiveColor: '#e53935', // cor do nome quando o produto é inativo (vazio = sem destaque)
-    inactiveCodes: '', // códigos de produtos inativos (separados por vírgula): o nome fica vermelho na lista do PDV
+    inactiveCodes: '1, 2', // (verificados: CAIXA PIZZA 25 e 30) códigos de produtos inativos (separados por vírgula): o nome fica vermelho na lista do PDV
     inactiveRegex: 'inativ', // texto da linha do item que indica produto inativo (sem acento/minúsculo)
     restoreCart: true, // oferece reinserir os itens da venda após recarregar a página
     debug: false
