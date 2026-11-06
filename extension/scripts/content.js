@@ -494,17 +494,15 @@
     if (saved && isPdv() && pdvCards().length === 2) applyTabs(saved);
   })();
 
-  /* ---------- Nome do produto em negrito (só na lista de itens do PDV) ---------- */
-  function applyBold() {
-    const el = document.getElementById('cx-bold-style');
-    if (cfg.boldProductName && isPdv()) {
-      if (el) return;
-      const st = document.createElement('style');
-      st.id = 'cx-bold-style';
-      st.textContent = '[id$="tableProdutosNovoLayout"] [id$="descricaoProdTable"]{font-weight:700!important}';
-      (document.head || document.documentElement).appendChild(st);
+  /* ---------- Cor do nome do produto (só na lista de itens do PDV) ---------- */
+  function applyNameStyle() {
+    let el = document.getElementById('cx-name-style');
+    const color = (cfg.productNameColor || '').trim();
+    if (color && isPdv() && CSS.supports('color', color)) {
+      if (!el) { el = document.createElement('style'); el.id = 'cx-name-style'; (document.head || document.documentElement).appendChild(el); }
+      el.textContent = '[id$="tableProdutosNovoLayout"] [id$="descricaoProdTable"]{color:' + color + '!important}';
     } else if (el) el.remove();
   }
-  CX.get('settings').then(() => { applyBold(); setTimeout(applyBold, 1500); });
-  chrome.storage.onChanged.addListener((ch) => { if (ch.settings) setTimeout(applyBold, 50); });
+  CX.get('settings').then(() => { applyNameStyle(); setTimeout(applyNameStyle, 1500); });
+  chrome.storage.onChanged.addListener((ch) => { if (ch.settings) setTimeout(applyNameStyle, 50); });
 })();

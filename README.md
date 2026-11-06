@@ -11,7 +11,7 @@ Extensão para Google Chrome (Manifest V3) que **exige a senha do gerente** ante
 - Quando o Codxis abre o modal "Desconto maior que o limite do vendedor", o **Confirmar** exige também a senha do gerente da extensão.
 - **Restaura os itens da venda após recarregar o PDV**: guarda código e quantidade (por aba) e, depois do F5, pergunta se deve reinseri-los (Enter restaura, Esc descarta). Preço, desconto, cliente e pagamentos não são restaurados.
 - **Modo em abas (opcional)**: no PDV, **F4** troca a divisão lado a lado por duas abas em tela cheia, **Produtos** e **Pagamento** (a barra de botões e o total continuam visíveis). **Shift+F4** alterna entre as abas e **F4** volta ao layout normal. As teclas são configuráveis nas Opções.
-- Nome do produto em **negrito** na lista de itens da frente de caixa (só nessa tela; desligável nas Opções).
+- Nome do produto em **vermelho** na lista de itens da frente de caixa (só nessa tela; cor configurável nas Opções, vazio = padrão).
 - Modal de autorização isolado em Shadow DOM, com foco travado na senha.
 - Senhas armazenadas com **PBKDF2-SHA256** (150 mil iterações, salt aleatório) — nunca em texto puro.
 - Bloqueio temporário após tentativas incorretas (3 para o gerente, 5 para o administrador).
