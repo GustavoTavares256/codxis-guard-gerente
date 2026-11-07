@@ -42,7 +42,9 @@ administrador e a senha do gerente na página de Opções no primeiro uso.
 
 **Imagem promocional pequena (obrigatória, 440×280):** `store/assets/tile-440x280.png`
 
-**Capturas de tela (1280×800, mínimo 1):** `store/assets/captura-1-autorizacao-1280x800.png` e `store/assets/captura-2-recursos-1280x800.png` (ilustrações sem dados reais; gere de novo com `npm run assets`). Se preferir, troque por capturas reais do PDV.
+**Letreiro promocional (1400×560):** `store/assets/letreiro-1400x560.png`
+
+**Capturas de tela (1280×800, mínimo 1, máximo 5):** `store/assets/captura-1-autorizacao-1280x800.png` e `store/assets/captura-2-recursos-1280x800.png` (ilustrações sem dados reais; gere de novo com `npm run assets`). Se preferir, troque por capturas reais do PDV.
 
 ## Aba "Práticas de privacidade"
 

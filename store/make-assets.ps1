@@ -38,6 +38,19 @@ Text $g 'Senha do gerente no PDV web' 19 $reg '#d7d8db' 40 205
 Text $g 'Cancelar venda  •  Remover item  •  Preço  •  Desconto' 13 $reg '#9aa0b4' 40 236
 Save $bmp 'tile-440x280.png'
 
+# ---------- 1b) Letreiro promocional 1400x560 ----------
+$bmp, $g = NewCanvas 1400 560
+$g.Clear((Color '#040823'))
+$g.DrawImage($icon, 110, 150, 150, 150)
+Text $g 'Codxis Guard' 84 $bold '#ffffff' 290 140
+Text $g 'Senha do gerente para o PDV web da Codxis' 34 $reg '#d7d8db' 296 258
+Text $g 'Cancelar venda  •  Remover item  •  Alterar preço  •  Desconto acima do limite' 24 $reg '#9aa0b4' 296 322
+$g.FillPath((New-Object System.Drawing.SolidBrush((Color '#dcdcf7'))), (RoundRect 296 392 360 54 8))
+$sf0 = New-Object System.Drawing.StringFormat; $sf0.Alignment = 'Center'; $sf0.LineAlignment = 'Center'
+$fb = New-Object System.Drawing.Font('Segoe UI', 22, $bold, [System.Drawing.GraphicsUnit]::Pixel)
+$g.DrawString('Visual igual ao do sistema', $fb, (New-Object System.Drawing.SolidBrush((Color '#040823'))), (New-Object System.Drawing.RectangleF(296, 392, 360, 54)), $sf0)
+Save $bmp 'letreiro-1400x560.png'
+
 # ---------- 2) Captura 1: modal de autorização (ilustração) ----------
 $bmp, $g = NewCanvas 1280 800
 $g.Clear((Color '#c3d0d8'))
