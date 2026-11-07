@@ -40,7 +40,9 @@ administrador e a senha do gerente na página de Opções no primeiro uso.
 
 **Ícone da loja (128×128):** `extension/icons/icon128.png`
 
-**Capturas de tela (1280×800 ou 640×400, mínimo 1):** veja `store/PUBLICAR.md`.
+**Imagem promocional pequena (obrigatória, 440×280):** `store/assets/tile-440x280.png`
+
+**Capturas de tela (1280×800, mínimo 1):** `store/assets/captura-1-autorizacao-1280x800.png` e `store/assets/captura-2-recursos-1280x800.png` (ilustrações sem dados reais; gere de novo com `npm run assets`). Se preferir, troque por capturas reais do PDV.
 
 ## Aba "Práticas de privacidade"
 
